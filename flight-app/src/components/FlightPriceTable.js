@@ -32,7 +32,6 @@ window._AMapSecurityConfig = {
   securityJsCode: process.env.REACT_APP_AMAP_SECURITY_CODE
 };
 
-// 在组件外部添加 URL 生成函数
 const generateBookingUrl = (iataCode, depDate, retDate) => {
   return `https://flights.ctrip.com/online/list/round-szx-${iataCode}?_=1&depdate=${depDate}_${retDate}`;
 };
