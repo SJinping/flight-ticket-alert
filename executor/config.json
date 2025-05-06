@@ -1,0 +1,12 @@
+{
+    "dateToGo": ["20240821", "20240822", "20240823", "20240824"],
+    "placeFrom": "SZX",
+    "placeTo": "KMG",
+    "flightWay": "Oneway",
+    "sleepTime": 600,
+    "priceStep": 50,
+    "targetPrice": 800,
+    "internationalTargetPrice": 2000,
+    "baseUrl": "https://flights.ctrip.com/itinerary/api/12808/lowestPrice?",
+    "internationalBaseUrl": "https://flights.ctrip.com/international/search/api/flightlist"
+}
