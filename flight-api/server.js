@@ -8,10 +8,10 @@ require('dotenv').config();
 
 const app = express();
 
-// 启用CORS, 允许cloudflare的访问
+// 启用CORS, 目前允许所有地址访问
 app.use(cors({}));
 
-// 基本路由测试
+// 测试
 app.get('/', (req, res) => {
   try {
     res.send('API服务器正常运行');
@@ -38,7 +38,7 @@ pool.on('error', (err) => {
   console.error('数据库池错误:', err);
 });
 
-// 测试数据库连接
+// 测试数据库连接flight-api/server.js
 app.get('/api/test-db', async (req, res) => {
   try {
     const connection = await pool.getConnection();
@@ -120,10 +120,8 @@ try {
   console.log('仅 HTTP 服务器可用');
 }
 
-// 在 server.js 中添加全局错误处理
 process.on('uncaughtException', (error) => {
   console.error('未捕获的异常:', error);
-  // 不要立即退出，记录错误后继续运行
 });
 
 process.on('unhandledRejection', (reason, promise) => {

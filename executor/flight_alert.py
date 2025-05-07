@@ -272,25 +272,25 @@ def main():
     config_path = os.path.join(current_dir, 'config.json')
     log_file_path = os.path.join(current_dir, 'log.txt')
     
-    # 更新为远程数据库配置
+    # 配置数据库
     db_config = get_database_config()
 
     logging.basicConfig(filename=log_file_path, level=logging.INFO)
     
     flight_alert = FlightAlert(config_path, db_config)
     
-    # 示例1：检查所有目的地
+    # 检查所有目的地
     flight_alert.check_all_destinations()
     
-    # 示例2：显示最优惠的航班价格
+    # 显示最优惠的航班价格
     flight_alert.show_best_deals()
     
-    # 示例3：检查特定目的地
+    # 检查特定目的地（还未测试）
     # from_city_code = "SZX"  # 深圳
     # to_city_code = "BJS"    # 北京
     # flight_alert.check_flight_price(from_city_code, to_city_code)
     
-    # 示例4：检查特定目的地和日期
+    # 检查特定目的地和日期（还未测试）
     # dep_date = "20250306"  # 出发日期
     # arr_date = "20250309"  # 返回日期
     # max_price = 1500
