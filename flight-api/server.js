@@ -1,18 +1,24 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
 require('dotenv').config();
 
 const app = express();
 
 // 启用CORS, 允许cloudflare的访问
-app.use(cors({
-  origin: ['https://your-app.pages.dev', 'https://your-custom-domain.com']
-}));
+app.use(cors({}));
 
 // 基本路由测试
 app.get('/', (req, res) => {
-  res.send('API服务器正常运行');
+  try {
+    res.send('API服务器正常运行');
+  } catch (error) {
+    console.error('路由处理错误:', error);
+    res.status(500).send('服务器内部错误');
+  }
 });
 
 // 创建数据库连接池
@@ -25,6 +31,11 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
+});
+
+// 监听连接池错误
+pool.on('error', (err) => {
+  console.error('数据库池错误:', err);
 });
 
 // 测试数据库连接
@@ -76,19 +87,45 @@ app.get('/api/flights', async (req, res) => {
   }
 });
 
-// 启动服务器
+// 添加错误处理中间件
+app.use((err, req, res, next) => {
+  console.error('Express 错误:', err);
+  res.status(500).send('服务器内部错误');
+});
+
+// 创建 HTTP 服务器
 const PORT = process.env.PORT || 5001;
-const server = app.listen(PORT, () => {
-  console.log(`服务器成功运行在端口 ${PORT}`);
-  console.log(`测试服务器: http://localhost:${PORT}`);
-  console.log(`测试数据库连接: http://localhost:${PORT}/api/test-db`);
-  console.log(`获取航班数据: http://localhost:${PORT}/api/flights`);
-}).on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`错误: 端口 ${PORT} 已被占用!`);
-    console.error('请尝试更改PORT环境变量或关闭占用该端口的应用');
-  } else {
-    console.error('服务器启动失败:', err.message);
-  }
-  process.exit(1); // 终止进程，明确表示启动失败
+const server = http.createServer(app);
+server.timeout = 10000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`HTTP 服务器运行在端口 ${PORT}`);
+});
+
+// 尝试创建 HTTPS 服务器
+try {
+  // 读取证书文件
+  const privateKey = fs.readFileSync('./ssl/key.pem', 'utf8');
+  const certificate = fs.readFileSync('./ssl/cert.pem', 'utf8');
+  
+  const credentials = { key: privateKey, cert: certificate };
+  
+  // 创建 HTTPS 服务器
+  const HTTPS_PORT = process.env.HTTPS_PORT || 5443;
+  const httpsServer = https.createServer(credentials, app);
+  httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+    console.log(`HTTPS 服务器运行在端口 ${HTTPS_PORT}`);
+  });
+} catch (error) {
+  console.error('启动 HTTPS 服务器失败:', error.message);
+  console.log('仅 HTTP 服务器可用');
+}
+
+// 在 server.js 中添加全局错误处理
+process.on('uncaughtException', (error) => {
+  console.error('未捕获的异常:', error);
+  // 不要立即退出，记录错误后继续运行
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('未处理的 Promise 拒绝:', reason);
 });
