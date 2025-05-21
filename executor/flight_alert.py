@@ -16,14 +16,25 @@ from config_manager import ConfigManager
 from price_manager import PriceManager
 from notification_manager import NotificationManager
 from credentials import get_database_config
+from dotenv import load_dotenv
 
 class FlightAlert:
     def __init__(self, config_path, db_config=None):
+        # 加载.env文件
+        load_dotenv()
+        
         self.db_config = db_config or get_database_config()
         self.config_manager = ConfigManager(config_path, self.db_config)
         self.price_manager = PriceManager(self.db_config)
+        
+        # 从.env文件中获取PUSH_TOKEN而不是从配置文件获取SCKEY
+        push_token = os.environ.get('PUSH_TOKEN')
+        if not push_token:
+            self.logger = logging.getLogger(self.__class__.__name__)
+            self.logger.warning("PUSH_TOKEN not found in .env file, notifications may not work")
+            
         self.notification_manager = NotificationManager(
-            self.config_manager.get_config('SCKEY'),
+            push_token,
             {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'}
         )
         self.logger = logging.getLogger(self.__class__.__name__)
