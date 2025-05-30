@@ -86,7 +86,6 @@ class FlightAlert:
             # 自动查询模式
             self._process_flight_info(flight_info, place_from, place_to, target_price=target_price)
         
-        self._send_price_alerts()
 
     def _process_flight_info(self, flight_info, place_from, place_to, days_diff=28, flight_way='Roundtrip', target_price=None):
         results = flight_info['data'].get('roundTripPrice' if flight_way == 'Roundtrip' else 'oneWayPrice', {})
@@ -143,8 +142,8 @@ class FlightAlert:
             time.sleep(random.randrange(1, 4) + random.random())
         
         # Save any pending updates to the database
-        self.price_manager.save_prices()
         self._send_price_alerts()
+        self.price_manager.save_prices()
 
     def _send_price_alerts(self):
         """Send notifications for price updates"""

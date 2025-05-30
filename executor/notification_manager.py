@@ -49,3 +49,12 @@ class NotificationManager:
         except Exception as e:
             self.logger.error(f"Error sending notification: {e}")
             return False
+        
+if __name__ == "__main__":
+    messages = ["深圳->北京, departure: 2025-06-05, return: 2025-06-08, price: 750", 
+                "深圳->上海, departure: 2025-06-05, return: 2025-06-08, price: 750",
+                "深圳->上海, departure: 2025-06-05, return: 2025-06-08, price: 750",
+                "深圳->上海, departure: 2025-06-05, return: 2025-06-08, price: 750",
+                "深圳->上海, departure: 2025-06-05, return: 2025-06-08, price: 750"]
+    notification_manager = NotificationManager("")
+    notification_manager.send_notification(messages)
