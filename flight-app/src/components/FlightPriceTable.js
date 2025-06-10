@@ -32,9 +32,9 @@ window._AMapSecurityConfig = {
   securityJsCode: process.env.REACT_APP_AMAP_SECURITY_CODE
 };
 
-const generateBookingUrl = (iataCode, depDate, retDate) => {
-  return `https://flights.ctrip.com/online/list/round-szx-${iataCode}?_=1&depdate=${depDate}_${retDate}`;
-};
+// const generateBookingUrl = (iataCode, depDate, retDate) => {
+//   return `https://flights.ctrip.com/online/list/round-szx-${iataCode}?_=1&depdate=${depDate}_${retDate}`;
+// };
 
 // API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api';
@@ -581,7 +581,7 @@ const [mapError, setMapError] = useState(null);
               onError={(error) => setMapError(error.message)}
             >
               {mapReady && Object.entries(cityCoordinates).map(([city, coordinates]) => {
-                const departureCity = getCurrentDepartureCityName();
+                // const departureCity = getCurrentDepartureCityName();
                 
                 return (
                   <Marker
