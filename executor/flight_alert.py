@@ -129,17 +129,25 @@ class FlightAlert:
             self._send_price_alerts()
 
     def check_all_destinations(self):
-        """检查所有目的地的航班价格"""
-        place_from = self.config_manager.get_config('placeFrom')
+        """检查所有出发地到所有目的地的航班价格"""
+        place_from_list = self.config_manager.get_config('placeFrom')
+        # 如果placeFrom还是字符串格式，转换为列表以兼容旧配置
+        if isinstance(place_from_list, str):
+            place_from_list = [place_from_list]
+            
         destinations = self.config_manager.get_config('placeTo')
+        # 如果placeTo是字符串，转换为列表
+        if isinstance(destinations, str):
+            destinations = [destinations]
         
-        for place_to in destinations:
-            if place_to == place_from:
-                continue
-                
-            print(f'Processing flights from {place_from} to {place_to}...')
-            self.check_flight_price(place_from, place_to)
-            time.sleep(random.randrange(1, 4) + random.random())
+        for place_from in place_from_list:
+            for place_to in destinations:
+                if place_to == place_from:
+                    continue
+                    
+                print(f'Processing flights from {place_from} to {place_to}...')
+                self.check_flight_price(place_from, place_to)
+                time.sleep(random.randrange(1, 4) + random.random())
         
         # Save any pending updates to the database
         self._send_price_alerts()
@@ -246,24 +254,41 @@ class FlightAlert:
         """显示最优惠的机票价格
         
         Args:
-            place_from: 可选，出发地机场代码
+            place_from: 可选，出发地机场代码或代码列表
             max_price: 可选，最高价格
             limit: 返回结果数量
         """
         if place_from is None:
-            place_from = self.config_manager.get_config('placeFrom')
+            place_from_list = self.config_manager.get_config('placeFrom')
+            # 如果placeFrom还是字符串格式，转换为列表以兼容旧配置
+            if isinstance(place_from_list, str):
+                place_from_list = [place_from_list]
+        else:
+            # 如果传入的place_from是字符串，转换为列表
+            if isinstance(place_from, str):
+                place_from_list = [place_from]
+            else:
+                place_from_list = place_from
             
         if max_price is None:
             max_price = self.config_manager.get_config('targetPrice')
         
-        deals = self.price_manager.get_best_deals(place_from, max_price, limit)
+        # 收集所有出发地的最优价格
+        all_deals = []
+        for pf in place_from_list:
+            deals = self.price_manager.get_best_deals(pf, max_price, limit)
+            all_deals.extend(deals)
+        
+        # 按价格排序并取前limit个
+        all_deals.sort(key=lambda x: x['price'])
+        best_deals = all_deals[:limit]
         
         print(f"\n当前最优惠的{limit}个航班价格:")
         print("-" * 80)
         print(f"{'出发地':<8} {'目的地':<8} {'出发日期':<12} {'返回日期':<12} {'价格':>8} {'更新时间':<20}")
         print("-" * 80)
         
-        for deal in deals:
+        for deal in best_deals:
             from_city = self.config_manager.get_city_name(deal['place_from'])
             to_city = self.config_manager.get_city_name(deal['place_to'])
             dep_date = deal['dep_date'].strftime("%Y-%m-%d")
@@ -275,7 +300,30 @@ class FlightAlert:
         
         print("-" * 80)
         
-        return deals
+        return best_deals
+
+    def check_all_from_single_destination(self, place_to):
+        """检查所有出发地到指定目的地的航班价格
+        
+        Args:
+            place_to: 目的地机场代码
+        """
+        place_from_list = self.config_manager.get_config('placeFrom')
+        # 如果placeFrom还是字符串格式，转换为列表以兼容旧配置
+        if isinstance(place_from_list, str):
+            place_from_list = [place_from_list]
+        
+        for place_from in place_from_list:
+            if place_to == place_from:
+                continue
+                
+            print(f'Processing flights from {place_from} to {place_to}...')
+            self.check_flight_price(place_from, place_to)
+            time.sleep(random.randrange(1, 4) + random.random())
+        
+        # Save any pending updates to the database
+        self._send_price_alerts()
+        self.price_manager.save_prices()
 
 def main():
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -299,6 +347,10 @@ def main():
     # from_city_code = "SZX"  # 深圳
     # to_city_code = "BJS"    # 北京
     # flight_alert.check_flight_price(from_city_code, to_city_code)
+
+    # 检查所有出发地到特定目的地（还未测试）
+    # place_to = "BJS"
+    # flight_alert.check_all_from_single_destination(place_to)
     
     # 检查特定目的地和日期（还未测试）
     # dep_date = "20250306"  # 出发日期
