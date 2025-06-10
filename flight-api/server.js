@@ -38,7 +38,7 @@ pool.on('error', (err) => {
   console.error('数据库池错误:', err);
 });
 
-// 测试数据库连接flight-api/server.js
+// 测试数据库连接
 app.get('/api/test-db', async (req, res) => {
   try {
     const connection = await pool.getConnection();
@@ -51,12 +51,37 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
-// 设置API路由
+// 获取所有可用的出发地
+app.get('/api/departure-cities', async (req, res) => {
+  console.log('收到 /api/departure-cities 请求');
+  try {
+    const [rows] = await pool.execute(`
+      SELECT DISTINCT 
+        c.place_from as iata_code,
+        i.iata_name as city_name
+      FROM t_flight_price_current c
+      JOIN t_iata_code i ON c.place_from = i.iata_code
+      ORDER BY i.iata_name
+    `);
+
+    console.log(`查询成功，返回 ${rows.length} 个出发地`);
+    res.json(rows);
+  } catch (error) {
+    console.error('获取出发地数据错误:', error);
+    res.status(500).json({ 
+      error: '获取出发地数据失败', 
+      message: error.message
+    });
+  }
+});
+
+// 设置API路由 - 支持按出发地筛选
 app.get('/api/flights', async (req, res) => {
   console.log('收到 /api/flights 请求');
+  const { departure } = req.query; // 获取出发地参数
+  
   try {
-    // 从数据库获取航班价格数据
-    const [rows] = await pool.execute(`
+    let query = `
       SELECT
         c.place_from,
         c.place_to,
@@ -65,14 +90,26 @@ app.get('/api/flights', async (req, res) => {
         c.price,
         c.last_checked,
         c.is_roundtrip,
-        i.iata_name as city_name
+        to_city.iata_name as city_name,
+        from_city.iata_name as from_city_name
       FROM
         t_flight_price_current c
       JOIN
-        t_iata_code i ON c.place_to = i.iata_code
-      ORDER BY
-        c.last_checked DESC
-    `);
+        t_iata_code to_city ON c.place_to = to_city.iata_code
+      JOIN
+        t_iata_code from_city ON c.place_from = from_city.iata_code
+    `;
+    
+    const params = [];
+    
+    if (departure) {
+      query += ` WHERE c.place_from = ?`;
+      params.push(departure);
+    }
+    
+    query += ` ORDER BY c.last_checked DESC`;
+
+    const [rows] = await pool.execute(query, params);
 
     console.log(`查询成功，返回 ${rows.length} 条记录`);
     res.json(rows);
