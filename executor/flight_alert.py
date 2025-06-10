@@ -155,19 +155,83 @@ class FlightAlert:
 
     def _send_price_alerts(self):
         """Send notifications for price updates"""
+        if not self.price_manager.update_price_info:
+            return
+            
         message = ''
-        city_from = self.config_manager.get_city_name(self.config_manager.get_config('placeFrom'))
         
-        for place_to, dates in self.price_manager.update_price_info.items():
-            city_to = self.config_manager.get_city_name(place_to)
-            for dep_date, arr_dates in dates.items():
-                for arr_date, price in arr_dates.items():
-                    dep_date_formatted = f"{dep_date[:4]}-{dep_date[4:6]}-{dep_date[6:]}"
-                    arr_date_formatted = f"{arr_date[:4]}-{arr_date[4:6]}-{arr_date[6:]}"
-                    message += f'{city_from}->{city_to}, departure: {dep_date_formatted}, return: {arr_date_formatted}, price: {price}\n'
-        
-        if message:
-            self.notification_manager.send_notification(message)
+        # 获取最近的价格更新，从数据库中查询以获取完整的路线信息
+        try:
+            # 计算需要通知的更新数量
+            total_updates = sum(
+                len(arr_dates) for dates in self.price_manager.update_price_info.values()
+                for arr_dates in dates.values()
+            )
+            
+            if total_updates == 0:
+                return
+                
+            # 从数据库获取最新的价格更新信息
+            recent_updates = self.price_manager.get_latest_prices(limit=total_updates * 2)  # 多取一些以确保包含所有更新
+            
+            # 处理每个价格更新
+            for place_to, dates in self.price_manager.update_price_info.items():
+                for dep_date, arr_dates in dates.items():
+                    for arr_date, price in arr_dates.items():
+                        # 查找对应的数据库记录以获取出发地信息
+                        matching_record = None
+                        for record in recent_updates:
+                            if (record['place_to'] == place_to and 
+                                record['dep_date'].strftime('%Y%m%d') == dep_date and 
+                                record['arr_date'].strftime('%Y%m%d') == arr_date):
+                                matching_record = record
+                                break
+                        
+                        if matching_record:
+                            city_from = self.config_manager.get_city_name(matching_record['place_from'])
+                            city_to = self.config_manager.get_city_name(place_to)
+                            dep_date_formatted = f"{dep_date[:4]}-{dep_date[4:6]}-{dep_date[6:]}"
+                            arr_date_formatted = f"{arr_date[:4]}-{arr_date[4:6]}-{arr_date[6:]}"
+                            message += f'{city_from}->{city_to}, departure: {dep_date_formatted}, return: {arr_date_formatted}, price: {price}\n'
+                        else:
+                            # 如果找不到匹配记录，使用默认的第一个出发地
+                            place_from_list = self.config_manager.get_config('placeFrom')
+                            if isinstance(place_from_list, str):
+                                default_place_from = place_from_list
+                            else:
+                                default_place_from = place_from_list[0] if place_from_list else 'SZX'
+                            
+                            city_from = self.config_manager.get_city_name(default_place_from)
+                            city_to = self.config_manager.get_city_name(place_to)
+                            dep_date_formatted = f"{dep_date[:4]}-{dep_date[4:6]}-{dep_date[6:]}"
+                            arr_date_formatted = f"{arr_date[:4]}-{arr_date[4:6]}-{arr_date[6:]}"
+                            message += f'{city_from}->{city_to}, departure: {dep_date_formatted}, return: {arr_date_formatted}, price: {price}\n'
+            
+            if message:
+                self.notification_manager.send_notification(message)
+                
+        except Exception as e:
+            self.logger.error(f"Error sending price alerts: {e}")
+            # 降级处理：如果数据库查询失败，使用配置中的第一个出发地
+            place_from_list = self.config_manager.get_config('placeFrom')
+            if isinstance(place_from_list, str):
+                default_place_from = place_from_list
+            else:
+                default_place_from = place_from_list[0] if place_from_list else 'SZX'
+                
+            city_from = self.config_manager.get_city_name(default_place_from)
+            message = ''
+            
+            for place_to, dates in self.price_manager.update_price_info.items():
+                city_to = self.config_manager.get_city_name(place_to)
+                for dep_date, arr_dates in dates.items():
+                    for arr_date, price in arr_dates.items():
+                        dep_date_formatted = f"{dep_date[:4]}-{dep_date[4:6]}-{dep_date[6:]}"
+                        arr_date_formatted = f"{arr_date[:4]}-{arr_date[4:6]}-{arr_date[6:]}"
+                        message += f'{city_from}->{city_to}, departure: {dep_date_formatted}, return: {arr_date_formatted}, price: {price}\n'
+            
+            if message:
+                self.notification_manager.send_notification(message)
 
     def get_international_flight_response(self, place_from, place_to, flight_way='Roundtrip', is_direct=True):
         """获取国际航班信息
