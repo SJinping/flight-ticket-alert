@@ -302,7 +302,7 @@ class PriceManager:
                 SELECT c.place_from, c.place_to, c.dep_date, c.arr_date, 
                        c.price, c.last_checked, c.is_roundtrip
                 FROM t_flight_price_current c
-                WHERE 1=1
+                WHERE 1=1 ODER BY c.dep_date DESC
             """
             params = []
             
