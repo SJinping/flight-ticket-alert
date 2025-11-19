@@ -139,28 +139,33 @@ server.listen(PORT, '0.0.0.0', () => {
 });
 
 // 尝试创建 HTTPS 服务器
+// 更新证书路径
 try {
-  // 读取证书文件
-  const privateKey = fs.readFileSync('./ssl/key.pem', 'utf8');
-  const certificate = fs.readFileSync('./ssl/cert.pem', 'utf8');
+  // 根据你申请的域名修改路径
+  const privateKey = fs.readFileSync('/etc/letsencrypt/live/api.weekfly.fun/privkey.pem', 'utf8');
+  const certificate = fs.readFileSync('/etc/letsencrypt/live/api.weekfly.fun/fullchain.pem', 'utf8');
   
   const credentials = { key: privateKey, cert: certificate };
   
-  // 创建 HTTPS 服务器
-  const HTTPS_PORT = process.env.HTTPS_PORT || 5443;
+  // 使用标准443端口（推荐）
+  const HTTPS_PORT = 443;
   const httpsServer = https.createServer(credentials, app);
   httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
     console.log(`HTTPS 服务器运行在端口 ${HTTPS_PORT}`);
   });
 } catch (error) {
   console.error('启动 HTTPS 服务器失败:', error.message);
-  console.log('仅 HTTP 服务器可用');
 }
 
-process.on('uncaughtException', (error) => {
-  console.error('未捕获的异常:', error);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('未处理的 Promise 拒绝:', reason);
-});
+// 更新CORS配置
+app.use(cors({
+  origin: [
+    'https://flight-ticket-alert.pages.dev',
+    'https://weekfly.fun',
+    'https://www.weekfly.fun',
+    'http://localhost:3000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
