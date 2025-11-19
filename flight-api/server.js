@@ -148,7 +148,7 @@ try {
   const credentials = { key: privateKey, cert: certificate };
   
   // 使用标准443端口（推荐）
-  const HTTPS_PORT = 5443;
+  const HTTPS_PORT = 443;
   const httpsServer = https.createServer(credentials, app);
   httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
     console.log(`HTTPS 服务器运行在端口 ${HTTPS_PORT}`);
