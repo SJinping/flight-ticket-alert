@@ -163,6 +163,8 @@ const FlightPriceTable = () => {
       .then(data => {
         console.log('Received flight data:', data.length, 'records');
 
+        const currentDate = dayjs().format('YYYY-MM-DD');
+
         // 处理数据以匹配组件格式
         const processedFlights = data.map((flight, index) => {
           return {
@@ -177,10 +179,14 @@ const FlightPriceTable = () => {
           };
         });
 
-        setFlights(processedFlights);
-        setFilteredFlights(processedFlights);
+        // 过滤掉出发日期已过期的航班
+        const validFlights = processedFlights.filter(f => f.depDate >= currentDate);
 
-        const uniqueCities = [...new Set(processedFlights.map(f => f.city))];
+        setFlights(validFlights);
+        setFilteredFlights(validFlights);
+
+        // 只显示有可预订航班的城市
+        const uniqueCities = [...new Set(validFlights.map(f => f.city))];
         setCities(uniqueCities.sort());
 
         // 关闭加载状态
@@ -194,7 +200,10 @@ const FlightPriceTable = () => {
 
   // 处理筛选
   useEffect(() => {
-    let filtered = [...flights];
+    const currentDate = dayjs().format('YYYY-MM-DD');
+    
+    // 首先过滤掉过期航班
+    let filtered = flights.filter(f => f.depDate >= currentDate);
     
     if (selectedCity) {
       filtered = filtered.filter(f => f.city === selectedCity);
