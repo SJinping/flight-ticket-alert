@@ -5,7 +5,6 @@ import {
   TextField, 
   Typography,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   Dialog,
@@ -15,7 +14,14 @@ import {
   Tabs,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  Card,
+  Button,
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Container,
+  InputAdornment
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
@@ -25,19 +31,68 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { Map, Marker, Polyline } from '@uiw/react-amap';
 import dayjs from 'dayjs';
 // 在文件顶部添加 recharts 相关导入
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+
+// Icons
+import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
+import FlightLandIcon from '@mui/icons-material/FlightLand';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import MapIcon from '@mui/icons-material/Map';
+import TimelineIcon from '@mui/icons-material/Timeline';
+import SearchIcon from '@mui/icons-material/Search';
 
 // 在组件顶部添加安全配置
 window._AMapSecurityConfig = {
   securityJsCode: process.env.REACT_APP_AMAP_SECURITY_CODE
 };
 
-// const generateBookingUrl = (iataCode, depDate, retDate) => {
-//   return `https://flights.ctrip.com/online/list/round-szx-${iataCode}?_=1&depdate=${depDate}_${retDate}`;
-// };
-
 // API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api';
+
+// Custom Theme
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2', // Airline Blue
+    },
+    secondary: {
+      main: '#ff9800', // Accent Orange
+    },
+    background: {
+      default: '#f5f7fa',
+      paper: '#ffffff',
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    h4: {
+      fontWeight: 700,
+    },
+  },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        rounded: {
+          borderRadius: 12,
+        },
+        elevation1: {
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          textTransform: 'none',
+          fontWeight: 600,
+        },
+      },
+    },
+  },
+});
 
 const FlightPriceTable = () => {
   const [selectedCityFlights, setSelectedCityFlights] = useState([]);
@@ -57,6 +112,7 @@ const FlightPriceTable = () => {
   const [loading, setLoading] = useState(false);
   const [activeRoutes, setActiveRoutes] = useState([]);
   const REACT_APP_AMAP_KEY = process.env.REACT_APP_AMAP_KEY
+  const accentColor = theme.palette.secondary.main;
 
   // 添加获取城市坐标的函数
   const getCityCoordinate = useCallback(async (cityName) => {
@@ -309,469 +365,601 @@ const [mapError, setMapError] = useState(null);
   };
 
   return (
-    <Box sx={{ width: '100%', padding: 2 }}>
-      <Typography variant="h4" gutterBottom>
-        {getCurrentDepartureCityName()}牛马特种兵旅游专线
-      </Typography>
-
-      {/* 全局筛选区域 - 对所有视图都有效 */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* 出发地选择器 */}
-          <FormControl sx={{ minWidth: 150 }}>
-            <InputLabel>出发地</InputLabel>
-            <Select
-              value={selectedDeparture}
-              label="出发地"
-              onChange={(e) => setSelectedDeparture(e.target.value)}
-            >
-              {departureCities.map((city) => (
-                <MenuItem key={city.iata_code} value={city.iata_code}>
-                  {city.city_name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {/* 目的地选择器 */}
-          <FormControl sx={{ minWidth: 150 }}>
-            <InputLabel>选择目的地</InputLabel>
-            <Select
-              value={selectedCity}
-              label="选择目的地"
-              onChange={(e) => setSelectedCity(e.target.value)}
-            >
-              <MenuItem value="">全部城市</MenuItem>
-              {cities.map(city => (
-                <MenuItem key={city} value={city}>{city}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {/* 价格范围 */}
-          <TextField
-            label="最低价格"
-            type="number"
-            value={priceRange.min}
-            onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
-            sx={{ width: 120 }}
-          />
-          <TextField
-            label="最高价格"
-            type="number"
-            value={priceRange.max}
-            onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
-            sx={{ width: 120 }}
-          />
-        </Box>
-      </Paper>
-
-      {/* 视图切换标签 */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs 
-          value={viewType} 
-          onChange={(_event, newValue) => setViewType(newValue)} 
-          aria-label="view tabs"
-          sx={{ mb: 2 }}
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 4 }}>
+        {/* Hero Section */}
+        <Box 
+          sx={{ 
+            py: 6, 
+            mb: 4, 
+            textAlign: 'center', 
+            background: 'linear-gradient(135deg, #1976d2 0%, #64b5f6 100%)', 
+            color: 'white',
+            boxShadow: '0 4px 20px rgba(25, 118, 210, 0.25)'
+          }}
         >
-          <Tab value="table" label="表格视图" />
-          <Tab value="calendar" label="日历视图" />
-          <Tab value="map" label="地图视图" />
-          <Tab value="trend" label="价格走势" />
-        </Tabs>
-      </Box>
-      
-      {/* 表格视图 */}
-      {viewType === 'table' && (
-        <Paper sx={{ height: 600, width: '100%' }}>
-          <DataGrid
-            rows={filteredFlights}
-            columns={columns}
-            pageSize={10}
-            rowsPerPageOptions={[10]}
-            disableSelectionOnClick
-            sortModel={[
-              {
-                field: 'timestamp',
-                sort: 'desc'
-              },
-              {
-                field: 'price',
-                sort: 'asc'
-              }
-            ]}
-          />
-        </Paper>
-      )}
+          <Container maxWidth="lg">
+            <Typography variant="h3" component="h1" fontWeight="800" gutterBottom>
+              ✈️ {getCurrentDepartureCityName()} 牛马特种兵旅游专线
+            </Typography>
+            <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400 }}>
+              发现最划算的周末往返机票，说走就走
+            </Typography>
+          </Container>
+        </Box>
 
-      {/* 日历视图 */}
-      {viewType === 'calendar' && (
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <Container maxWidth="lg">
+          {/* Search/Filter Bar */}
           <Paper 
+            elevation={0} 
             sx={{ 
-              p: 3,
-              maxWidth: 400,
-              margin: '0 auto',
-              borderRadius: 2,
-              boxShadow: 3
+              p: 3, 
+              mb: 4, 
+              border: '1px solid rgba(0,0,0,0.08)',
+              display: 'flex', 
+              gap: 2, 
+              flexWrap: 'wrap', 
+              alignItems: 'center',
+              background: '#fff'
             }}
           >
-            <DateCalendar 
-              onChange={handleDateClick}
-              shouldDisableDate={(date) => !hasFlights(date)}
-              sx={{
-                width: '100%',
-                '& .MuiPickersDay-root': {
-                  borderRadius: '50%',
-                  '&:not(.Mui-disabled)': {
-                    backgroundColor: '#e3f2fd',
-                    color: '#1976d2',
-                    fontWeight: 'bold',
-                    '&:hover': {
-                      backgroundColor: '#90caf9',
-                    }
-                  }
-                },
-                '& .MuiDayCalendar-weekDayLabel': {
-                  color: '#1976d2',
-                  fontWeight: 'bold'
-                },
-                '& .MuiPickersCalendarHeader-root': {
-                  backgroundColor: '#f5f5f5',
-                  borderRadius: 1,
-                  marginBottom: 1,
-                  padding: 1
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1, minWidth: 200 }}>
+              <FlightTakeoffIcon color="primary" />
+              <FormControl variant="outlined" size="small" fullWidth>
+                <Select
+                  value={selectedDeparture}
+                  onChange={(e) => setSelectedDeparture(e.target.value)}
+                  displayEmpty
+                  startAdornment={<Typography variant="caption" sx={{ mr: 1, color: 'text.secondary' }}>出发:</Typography>}
+                >
+                  {departureCities.map((city) => (
+                    <MenuItem key={city.iata_code} value={city.iata_code}>
+                      {city.city_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1, minWidth: 200 }}>
+              <FlightLandIcon color="primary" />
+              <FormControl variant="outlined" size="small" fullWidth>
+                <Select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  displayEmpty
+                  startAdornment={<Typography variant="caption" sx={{ mr: 1, color: 'text.secondary' }}>到达:</Typography>}
+                >
+                  <MenuItem value="">全部城市</MenuItem>
+                  {cities.map(city => (
+                    <MenuItem key={city} value={city}>{city}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1, minWidth: 250 }}>
+              <AttachMoneyIcon color="primary" />
+              <TextField
+                placeholder="最低价"
+                type="number"
+                size="small"
+                value={priceRange.min}
+                onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
+                InputProps={{ startAdornment: <InputAdornment position="start">¥</InputAdornment> }}
+                sx={{ width: 100 }}
+              />
+              <Typography variant="body2" color="text.secondary">-</Typography>
+              <TextField
+                placeholder="最高价"
+                type="number"
+                size="small"
+                value={priceRange.max}
+                onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
+                InputProps={{ startAdornment: <InputAdornment position="start">¥</InputAdornment> }}
+                sx={{ width: 100 }}
+              />
+            </Box>
+          </Paper>
+
+          {/* View Tabs */}
+          <Card elevation={0} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs 
+              value={viewType} 
+              onChange={(_event, newValue) => setViewType(newValue)} 
+              aria-label="view tabs"
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{ px: 2, bgcolor: 'background.paper' }}
+              TabIndicatorProps={{
+                sx: {
+                  backgroundColor: accentColor,
+                  height: 3,
+                  borderRadius: 3
                 }
               }}
-            />
-          </Paper>
-        </LocalizationProvider>
-      )}
-
-      {/* 价格走势视图 */}
-      {viewType === 'trend' && (
-        <Paper sx={{ height: 600, width: '100%', p: 2, overflow: 'auto' }}>
-          {cities.map(city => {
-            const currentDate = dayjs().format('YYYY-MM-DD');
-            const cityFlights = filteredFlights
-              .filter(f => f.city === city)
-              .sort((a, b) => new Date(a.depDate) - new Date(b.depDate))
-              .map(f => ({
-                ...f,
-                isExpired: f.depDate < currentDate
-              }));
-
-            if (cityFlights.length === 0) return null;
-
-            return (
-              <Box key={city} sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  {getCurrentDepartureCityName()} → {city}
-                </Typography>
-                <Box sx={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={cityFlights}>
-                      <XAxis
-                        dataKey="depDate"
-                        tick={{ fontSize: 12 }}
-                        angle={-45}
-                        textAnchor="end"
-                        height={80}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 12 }}
-                        label={{ value: '价格 (￥)', angle: -90, position: 'insideLeft' }}
-                      />
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            const url = !data.isExpired ? generateDynamicBookingUrl(selectedDeparture, data.iataCode, data.depDate, data.retDate) : null;
-                            
-                            return (
-                              <div style={{
-                                backgroundColor: 'white',
-                                padding: '10px',
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                              }}>
-                                <p style={{ margin: 0, fontWeight: 'bold' }}>目的地: {data.city}</p>
-                                <p style={{ margin: 0 }}>出发: {data.depDate}</p>
-                                <p style={{ margin: 0 }}>返回: {data.retDate}</p>
-                                <p style={{ margin: 0, color: '#1976d2', fontWeight: 'bold' }}>价格: ¥{data.price}</p>
-                                {data.isExpired && (
-                                  <p style={{ margin: 0, color: '#f44336', fontSize: '12px' }}>已过期</p>
-                                )}
-                                {url && (
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{
-                                      color: '#1976d2',
-                                      textDecoration: 'none',
-                                      fontSize: '12px',
-                                      display: 'block',
-                                      marginTop: '5px'
-                                    }}
-                                  >
-                                    点击订票
-                                  </a>
-                                )}
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="price"
-                        stroke="#1976d2"
-                        dot={(props) => {
-                          const { cx, cy, payload } = props;
-                          const url = !payload.isExpired ? generateDynamicBookingUrl(selectedDeparture, payload.iataCode, payload.depDate, payload.retDate) : null;
-                          
-                          return (
-                            <g style={{ cursor: url ? 'pointer' : 'default' }} onClick={() => url && window.open(url, '_blank')}>
-                              <circle
-                                cx={cx}
-                                cy={cy}
-                                r={4}
-                                fill={payload.isExpired ? '#9e9e9e' : '#1976d2'}
-                                stroke={payload.isExpired ? '#9e9e9e' : '#1976d2'}
-                              />
-                            </g>
-                          );
-                        }}
-                        activeDot={(props) => {
-                          const { cx, cy, payload } = props;
-                          const url = !payload.isExpired ? generateDynamicBookingUrl(selectedDeparture, payload.iataCode, payload.depDate, payload.retDate) : null;
-                          
-                          return (
-                            <g style={{ cursor: url ? 'pointer' : 'default' }} onClick={() => url && window.open(url, '_blank')}>
-                              <circle
-                                cx={cx}
-                                cy={cy}
-                                r={6}
-                                fill={payload.isExpired ? '#9e9e9e' : '#1976d2'}
-                                stroke={payload.isExpired ? '#9e9e9e' : '#1976d2'}
-                              />
-                            </g>
-                          );
-                        }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Box>
-              </Box>
-            );
-          })}
-        </Paper>
-      )}
-
-      {/* 地图视图 */}
-      {viewType === 'map' && (
-        <Paper sx={{ p: 2, height: '600px', position: 'relative' }}>
-          {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-              <Typography>加载地图数据中...</Typography>
-            </Box>
-          )}
-
-          {REACT_APP_AMAP_KEY && !mapError && (
-            <Map 
-              amapkey={REACT_APP_AMAP_KEY}
-              zoom={5}
-              center={[114.085947, 22.547]}
-              mapStyle="amap://styles/whitesmoke"
-              onComplete={() => setMapReady(true)}
-              onError={(error) => setMapError(error.message)}
             >
-              {mapReady && Object.entries(cityCoordinates).map(([city, coordinates]) => {
-                // const departureCity = getCurrentDepartureCityName();
-                
-                return (
-                  <Marker
-                    key={city}
-                    position={coordinates}
-                    label={{
-                      content: city,
-                      direction: 'top'
-                    }}
-                    clickable={true}
-                    onClick={() => {
-                      const currentDate = dayjs().format('YYYY-MM-DD');
-                      const futureFlights = flights
-                        .filter(f => f.city === city && f.depDate >= currentDate)
-                        .reduce((acc, flight) => {
-                          const key = `${flight.depDate}-${flight.retDate}`;
-                          if (!acc[key] || acc[key].timestamp < flight.timestamp) {
-                            acc[key] = flight;
-                          }
-                          return acc;
-                        }, {});
-                      
-                      const uniqueFlights = Object.values(futureFlights)
-                        .sort((a, b) => a.price - b.price);
-                      
-                      if (uniqueFlights.length > 0) {
-                        setSelectedCityFlights(uniqueFlights);
-                        setSelectedCityName(city);
-                        setCityDialogOpen(true);
-                      }
-                    }}
-                  />
-                );
-              })}
-              
-              {mapReady && activeRoutes.map((route, index) => {
-                const departureCity = getCurrentDepartureCityName();
-                const fromCoord = cityCoordinates[departureCity];
-                const toCoord = cityCoordinates[route.to];
-                if (!fromCoord || !toCoord) return null;
-                
-                const dx = toCoord[0] - fromCoord[0];
-                const dy = toCoord[1] - fromCoord[1];
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                const heightFactor = distance * 0.15;
-                const midPoint = [
-                  (fromCoord[0] + toCoord[0]) / 2,
-                  (fromCoord[1] + toCoord[1]) / 2
-                ];
-                const controlPoint = [
-                  midPoint[0],
-                  midPoint[1] + heightFactor
-                ];
-            
-                const points = [];
-                for (let t = 0; t <= 1; t += 0.02) {
-                  const x = Math.pow(1 - t, 2) * fromCoord[0] + 
-                            2 * (1 - t) * t * controlPoint[0] + 
-                            Math.pow(t, 2) * toCoord[0];
-                  const y = Math.pow(1 - t, 2) * fromCoord[1] + 
-                            2 * (1 - t) * t * controlPoint[1] + 
-                            Math.pow(t, 2) * toCoord[1];
-                  points.push([x, y]);
-                }
-                
-                return (
-                  <Polyline
-                    key={index}
-                    path={points}
-                    strokeColor="#1976d2"
-                    strokeWeight={3}
-                    strokeStyle="solid"
-                    showDir={true}
-                    geodesic={false}
-                    lineJoin="round"
-                    lineCap="round"
-                    borderWeight={1}
-                    isOutline={true}
-                    outlineColor="rgba(255, 255, 255, 0.6)"
-                    extData={route}
-                    events={{
-                      click: (e) => {
-                        const routeData = e.target.getExtData();
-                        alert(`${routeData.from} -> ${routeData.to}\n价格：￥${routeData.price}`);
-                      }
-                    }}
-                  />
-                );
-              })}
-            </Map>
-          )}
-        </Paper>
-      )}
+              <Tab 
+                icon={<TableChartIcon />} 
+                iconPosition="start" 
+                value="table" 
+                label="表格视图"
+                sx={{ color: viewType === 'table' ? 'primary.main' : 'text.secondary' }}
+              />
+              <Tab 
+                icon={<CalendarMonthIcon />} 
+                iconPosition="start" 
+                value="calendar" 
+                label="日历视图"
+                sx={{ color: viewType === 'calendar' ? 'primary.main' : 'text.secondary' }}
+              />
+              <Tab 
+                icon={<MapIcon />} 
+                iconPosition="start" 
+                value="map" 
+                label="地图视图"
+                sx={{ color: viewType === 'map' ? 'primary.main' : 'text.secondary' }}
+              />
+              <Tab 
+                icon={<TimelineIcon />} 
+                iconPosition="start" 
+                value="trend" 
+                label="价格走势"
+                sx={{ color: viewType === 'trend' ? 'primary.main' : 'text.secondary' }}
+              />
+            </Tabs>
+          </Card>
+          
+          {/* Views Content */}
+          <Paper elevation={0} sx={{ overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)' }}>
+            {/* 表格视图 */}
+            {viewType === 'table' && (
+              <Box sx={{ height: 600, width: '100%' }}>
+                <DataGrid
+                  rows={filteredFlights}
+                  columns={columns}
+                  pageSize={10}
+                  rowsPerPageOptions={[10]}
+                  disableSelectionOnClick
+                  sortModel={[
+                    {
+                      field: 'timestamp',
+                      sort: 'desc'
+                    },
+                    {
+                      field: 'price',
+                      sort: 'asc'
+                    }
+                  ]}
+                  sx={{
+                    border: 'none',
+                    '& .MuiDataGrid-cell:focus': {
+                      outline: 'none',
+                    },
+                    '& .MuiDataGrid-columnHeaders': {
+                      bgcolor: '#f5f7fa',
+                      fontWeight: 600,
+                    },
+                  }}
+                />
+              </Box>
+            )}
 
-      {/* 城市航班对话框 */}
-      <Dialog open={cityDialogOpen} onClose={() => setCityDialogOpen(false)} maxWidth="md">
-        <DialogTitle>{selectedCityName}航班信息</DialogTitle>
-        <DialogContent>
-          <List>
-            {selectedCityFlights.map((flight, index) => {
-              const currentDate = dayjs().format('YYYY-MM-DD');
-              const url = generateDynamicBookingUrl(selectedDeparture, flight.iataCode, flight.depDate, flight.retDate);
-              
-              return (
-                <ListItem 
-                  key={index}
-                  secondaryAction={
-                    flight.depDate >= currentDate && (
-                      <a
+            {/* 日历视图 */}
+            {viewType === 'calendar' && (
+              <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      border: '1px solid rgba(0,0,0,0.12)',
+                      borderRadius: 4,
+                      p: 2
+                    }}
+                  >
+                    <DateCalendar 
+                      onChange={handleDateClick}
+                      shouldDisableDate={(date) => !hasFlights(date)}
+                      sx={{
+                        width: 320,
+                        '& .MuiPickersDay-root': {
+                          borderRadius: '50%',
+                          '&:not(.Mui-disabled)': {
+                            backgroundColor: '#e3f2fd',
+                            color: '#1976d2',
+                            fontWeight: 'bold',
+                            '&:hover': {
+                              backgroundColor: '#90caf9',
+                            }
+                          }
+                        },
+                        '& .MuiDayCalendar-weekDayLabel': {
+                          color: '#1976d2',
+                          fontWeight: 'bold'
+                        },
+                        '& .MuiPickersCalendarHeader-root': {
+                          // backgroundColor: '#f5f5f5',
+                          // borderRadius: 1,
+                          marginBottom: 1,
+                          padding: 1
+                        }
+                      }}
+                    />
+                  </Paper>
+                </LocalizationProvider>
+              </Box>
+            )}
+
+            {/* 价格走势视图 */}
+            {viewType === 'trend' && (
+              <Box sx={{ height: 600, width: '100%', p: 3, overflow: 'auto' }}>
+                {cities.map(city => {
+                  const currentDate = dayjs().format('YYYY-MM-DD');
+                  const cityFlights = filteredFlights
+                    .filter(f => f.city === city)
+                    .sort((a, b) => new Date(a.depDate) - new Date(b.depDate))
+                    .map(f => ({
+                      ...f,
+                      isExpired: f.depDate < currentDate
+                    }));
+
+                  if (cityFlights.length === 0) return null;
+
+                  return (
+                    <Box key={city} sx={{ mb: 6 }}>
+                      <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FlightTakeoffIcon fontSize="small" color="action" />
+                        {getCurrentDepartureCityName()} 
+                        <Typography component="span" color="text.secondary" sx={{ mx: 1 }}>→</Typography>
+                        <FlightLandIcon fontSize="small" color="action" />
+                        {city}
+                      </Typography>
+                      <Box sx={{ height: 300, border: '1px solid #eee', borderRadius: 2, p: 2, bgcolor: '#fff' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={cityFlights}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                            <XAxis
+                              dataKey="depDate"
+                              tick={{ fontSize: 12, fill: '#666' }}
+                              angle={-45}
+                              textAnchor="end"
+                              height={60}
+                              tickMargin={20}
+                            />
+                            <YAxis
+                              tick={{ fontSize: 12, fill: '#666' }}
+                              label={{ value: '价格 (￥)', angle: -90, position: 'insideLeft', fill: '#666' }}
+                            />
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const data = payload[0].payload;
+                                  const url = !data.isExpired ? generateDynamicBookingUrl(selectedDeparture, data.iataCode, data.depDate, data.retDate) : null;
+                                  
+                                  return (
+                                    <Paper elevation={3} sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.95)' }}>
+                                      <Typography variant="subtitle2" fontWeight="bold" gutterBottom>{data.city}</Typography>
+                                      <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 1, fontSize: '0.875rem' }}>
+                                        <Typography color="text.secondary">出发:</Typography>
+                                        <Typography>{data.depDate}</Typography>
+                                        <Typography color="text.secondary">返回:</Typography>
+                                        <Typography>{data.retDate}</Typography>
+                                        <Typography color="text.secondary">价格:</Typography>
+                                        <Typography color="secondary.main" fontWeight="bold">¥{data.price}</Typography>
+                                      </Box>
+                                      {data.isExpired && (
+                                        <Typography color="error" variant="caption" display="block" sx={{ mt: 1 }}>已过期</Typography>
+                                      )}
+                                      {url && (
+                                        <Button 
+                                          size="small" 
+                                          variant="contained" 
+                                          color="secondary"
+                                          fullWidth 
+                                          sx={{ mt: 1.5 }}
+                                          onClick={() => window.open(url, '_blank')}
+                                        >
+                                          点击订票
+                                        </Button>
+                                      )}
+                                    </Paper>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="price"
+                              stroke={accentColor}
+                              strokeWidth={2}
+                              dot={(props) => {
+                                const { cx, cy, payload } = props;
+                                const url = !payload.isExpired ? generateDynamicBookingUrl(selectedDeparture, payload.iataCode, payload.depDate, payload.retDate) : null;
+                                
+                                return (
+                                  <g style={{ cursor: url ? 'pointer' : 'default' }} onClick={() => url && window.open(url, '_blank')}>
+                                    <circle
+                                      cx={cx}
+                                      cy={cy}
+                                      r={4}
+                                      fill={payload.isExpired ? '#bdbdbd' : accentColor}
+                                      stroke="white"
+                                      strokeWidth={2}
+                                    />
+                                  </g>
+                                );
+                              }}
+                              activeDot={{ r: 6, strokeWidth: 0, fill: accentColor }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
+
+            {/* 地图视图 */}
+            {viewType === 'map' && (
+              <Box sx={{ p: 0, height: '600px', position: 'relative' }}>
+                {loading && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', bgcolor: '#f5f5f5' }}>
+                    <Typography color="text.secondary">加载地图数据中...</Typography>
+                  </Box>
+                )}
+
+                {REACT_APP_AMAP_KEY && !mapError && (
+                  <Map 
+                    amapkey={REACT_APP_AMAP_KEY}
+                    zoom={5}
+                    center={[114.085947, 22.547]}
+                    mapStyle="amap://styles/whitesmoke"
+                    onComplete={() => setMapReady(true)}
+                    onError={(error) => setMapError(error.message)}
+                  >
+                    {mapReady && Object.entries(cityCoordinates).map(([city, coordinates]) => {
+                      // const departureCity = getCurrentDepartureCityName();
+                      
+                      return (
+                        <Marker
+                          key={city}
+                          position={coordinates}
+                          label={{
+                            content: city,
+                            direction: 'top'
+                          }}
+                          clickable={true}
+                          onClick={() => {
+                            const currentDate = dayjs().format('YYYY-MM-DD');
+                            const futureFlights = flights
+                              .filter(f => f.city === city && f.depDate >= currentDate)
+                              .reduce((acc, flight) => {
+                                const key = `${flight.depDate}-${flight.retDate}`;
+                                if (!acc[key] || acc[key].timestamp < flight.timestamp) {
+                                  acc[key] = flight;
+                                }
+                                return acc;
+                              }, {});
+                            
+                            const uniqueFlights = Object.values(futureFlights)
+                              .sort((a, b) => a.price - b.price);
+                            
+                            if (uniqueFlights.length > 0) {
+                              setSelectedCityFlights(uniqueFlights);
+                              setSelectedCityName(city);
+                              setCityDialogOpen(true);
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                    
+                    {mapReady && activeRoutes.map((route, index) => {
+                      const departureCity = getCurrentDepartureCityName();
+                      const fromCoord = cityCoordinates[departureCity];
+                      const toCoord = cityCoordinates[route.to];
+                      if (!fromCoord || !toCoord) return null;
+                      
+                      const dx = toCoord[0] - fromCoord[0];
+                      const dy = toCoord[1] - fromCoord[1];
+                      const distance = Math.sqrt(dx * dx + dy * dy);
+                      
+                      const heightFactor = distance * 0.15;
+                      const midPoint = [
+                        (fromCoord[0] + toCoord[0]) / 2,
+                        (fromCoord[1] + toCoord[1]) / 2
+                      ];
+                      const controlPoint = [
+                        midPoint[0],
+                        midPoint[1] + heightFactor
+                      ];
+                  
+                      const points = [];
+                      for (let t = 0; t <= 1; t += 0.02) {
+                        const x = Math.pow(1 - t, 2) * fromCoord[0] + 
+                                  2 * (1 - t) * t * controlPoint[0] + 
+                                  Math.pow(t, 2) * toCoord[0];
+                        const y = Math.pow(1 - t, 2) * fromCoord[1] + 
+                                  2 * (1 - t) * t * controlPoint[1] + 
+                                  Math.pow(t, 2) * toCoord[1];
+                        points.push([x, y]);
+                      }
+                      
+                      return (
+                        <Polyline
+                          key={index}
+                          path={points}
+                          strokeColor="#1976d2"
+                          strokeWeight={3}
+                          strokeStyle="solid"
+                          showDir={true}
+                          geodesic={false}
+                          lineJoin="round"
+                          lineCap="round"
+                          borderWeight={1}
+                          isOutline={true}
+                          outlineColor="rgba(255, 255, 255, 0.6)"
+                          extData={route}
+                          events={{
+                            click: (e) => {
+                              const routeData = e.target.getExtData();
+                              alert(`${routeData.from} -> ${routeData.to}\n价格：￥${routeData.price}`);
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                  </Map>
+                )}
+              </Box>
+            )}
+          </Paper>
+        </Container>
+
+        {/* 城市航班对话框 */}
+        <Dialog 
+          open={cityDialogOpen} 
+          onClose={() => setCityDialogOpen(false)} 
+          maxWidth="sm" 
+          fullWidth
+          PaperProps={{
+            elevation: 24,
+            shape: { borderRadius: 16 }
+          }}
+        >
+          <DialogTitle sx={{ borderBottom: '1px solid #eee', pb: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <FlightLandIcon color="primary" />
+              <Typography variant="h6">{selectedCityName} 航班信息</Typography>
+            </Box>
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <List>
+              {selectedCityFlights.map((flight, index) => {
+                const currentDate = dayjs().format('YYYY-MM-DD');
+                const url = generateDynamicBookingUrl(selectedDeparture, flight.iataCode, flight.depDate, flight.retDate);
+                
+                return (
+                  <ListItem 
+                    key={index}
+                    sx={{ 
+                      borderBottom: '1px solid #f5f5f5',
+                      py: 2
+                    }}
+                    secondaryAction={
+                      flight.depDate >= currentDate && (
+                      <Button
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="contained"
+                        color="secondary"
+                          size="small"
+                          disableElevation
+                        >
+                          订票
+                        </Button>
+                      )
+                    }
+                  >
+                    <ListItemText
+                      primary={
+                        <Typography variant="h6" color="primary.main" fontWeight="bold">
+                          ￥{flight.price}
+                        </Typography>
+                      }
+                      secondary={
+                        <Box sx={{ mt: 0.5 }}>
+                          <Typography variant="body2" color="text.primary">
+                            出发：{flight.depDate}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            返回：{flight.retDate}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                );
+              })}
+            </List>
+          </DialogContent>
+        </Dialog>
+
+        {/* 日期航班对话框 */}
+        <Dialog 
+          open={dialogOpen} 
+          onClose={() => setDialogOpen(false)} 
+          maxWidth="sm" 
+          fullWidth
+          PaperProps={{
+            elevation: 24,
+            shape: { borderRadius: 16 }
+          }}
+        >
+          <DialogTitle sx={{ borderBottom: '1px solid #eee', pb: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <CalendarMonthIcon color="primary" />
+              <Typography variant="h6">当日航班信息</Typography>
+            </Box>
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <List>
+              {dateFlights.map((flight, index) => {
+                const currentDate = dayjs().format('YYYY-MM-DD');
+                const url = generateDynamicBookingUrl(selectedDeparture, flight.iataCode, flight.depDate, flight.retDate);
+                
+                return (
+                  <ListItem 
+                    key={index} 
+                    sx={{ 
+                      borderBottom: '1px solid #f5f5f5',
+                      py: 1.5
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        flight.depDate >= currentDate ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="subtitle1" fontWeight="500">{flight.city}</Typography>
+                            </Box>
+                            <Typography color="primary.main" fontWeight="bold">￥{flight.price}</Typography>
+                          </Box>
+                        ) : (
+                          `${flight.city} - ￥${flight.price}`
+                        )
+                      }
+                      secondary={
+                        <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary">出发: {flight.depDate}</Typography>
+                          <Typography variant="caption" color="text.secondary">返回: {flight.retDate}</Typography>
+                        </Box>
+                      }
+                    />
+                    {flight.depDate >= currentDate && (
+                      <Button
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{
-                          color: '#1976d2',
-                          textDecoration: 'none',
-                          marginLeft: '8px',
-                          fontSize: '0.875rem',
-                          '&:hover': {
-                            textDecoration: 'underline'
-                          }
-                        }}
+                        size="small"
+                        variant="contained"
+                        color="secondary"
                       >
                         订票
-                      </a>
-                    )
-                  }
-                >
-                  <ListItemText
-                    primary={`￥${flight.price}`}
-                    secondary={`出发：${flight.depDate} 返回：${flight.retDate}`}
-                  />
-                </ListItem>
-              );
-            })}
-          </List>
-        </DialogContent>
-      </Dialog>
-
-      {/* 日期航班对话框 */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md">
-        <DialogTitle>航班信息</DialogTitle>
-        <DialogContent>
-          <List>
-            {dateFlights.map((flight, index) => {
-              const currentDate = dayjs().format('YYYY-MM-DD');
-              const url = generateDynamicBookingUrl(selectedDeparture, flight.iataCode, flight.depDate, flight.retDate);
-              
-              return (
-                <ListItem key={index}>
-                  <ListItemText
-                    primary={
-                      flight.depDate >= currentDate ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <a 
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              color: '#1976d2',
-                              textDecoration: 'none',
-                              '&:hover': { textDecoration: 'underline' }
-                            }}
-                          >
-                            {flight.city}
-                          </a>
-                          <span>- ￥{flight.price}</span>
-                        </Box>
-                      ) : (
-                        `${flight.city} - ￥${flight.price}`
-                      )
-                    }
-                    secondary={`出发：${flight.depDate} 返回：${flight.retDate}`}
-                  />
-                </ListItem>
-              );
-            })}
-          </List>
-        </DialogContent>
-      </Dialog>
-    </Box>
+                      </Button>
+                    )}
+                  </ListItem>
+                );
+              })}
+            </List>
+          </DialogContent>
+        </Dialog>
+      </Box>
+    </ThemeProvider>
   );
 };
 
