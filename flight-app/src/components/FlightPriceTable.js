@@ -727,10 +727,7 @@ const [mapError, setMapError] = useState(null);
                         <Marker
                           key={city}
                           position={coordinates}
-                          label={{
-                            content: city,
-                            direction: 'top'
-                          }}
+                          label={undefined}
                           clickable={true}
                           onClick={() => {
                             const currentDate = dayjs().format('YYYY-MM-DD');
@@ -753,7 +750,28 @@ const [mapError, setMapError] = useState(null);
                               setCityDialogOpen(true);
                             }
                           }}
-                        />
+                        >
+                          <div style={{
+                            width: '12px',
+                            height: '12px',
+                            backgroundColor: accentColor,
+                            borderRadius: '50%',
+                            border: '2px solid white',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }} 
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.2)';
+                            e.currentTarget.style.zIndex = 100;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.zIndex = 1;
+                          }}
+                          title={`${city} - 点击查看详情`}
+                          />
+                        </Marker>
                       );
                     })}
                     
@@ -793,15 +811,15 @@ const [mapError, setMapError] = useState(null);
                           key={index}
                           path={points}
                           strokeColor={accentColor}
-                          strokeWeight={4}
+                          strokeWeight={3}
                           strokeStyle="solid"
                           showDir={true}
                           geodesic={false}
                           lineJoin="round"
                           lineCap="round"
-                          borderWeight={2}
-                          isOutline={true}
-                          outlineColor="#ffffff"
+                          strokeOpacity={0.4}
+                          borderWeight={0}
+                          isOutline={false}
                           extData={route}
                           events={{
                             click: (e) => {
