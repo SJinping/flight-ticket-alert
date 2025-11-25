@@ -111,6 +111,7 @@ const FlightPriceTable = () => {
   const [cityCoordinates, setCityCoordinates] = useState({});
   const [loading, setLoading] = useState(false);
   const [activeRoutes, setActiveRoutes] = useState([]);
+  const [hoveredRouteIndex, setHoveredRouteIndex] = useState(null);
   const REACT_APP_AMAP_KEY = process.env.REACT_APP_AMAP_KEY
   const accentColor = theme.palette.secondary.main;
 
@@ -154,11 +155,22 @@ const FlightPriceTable = () => {
     const cities = [departureCity, ...new Set(activeFlights.map(f => f.city))];
     await Promise.all(cities.map(city => getCityCoordinate(city)));
 
-    const routes = activeFlights.map(f => ({
-      from: departureCity,
-      to: f.city,
-      price: f.price
-    }));
+    // 根据目的地去重航线：同一目的地只保留一条（例如价格最低的一条）
+    // 注意：不要使用全局 Map 名称以避免与 AMap 组件命名冲突
+    const routeMap = {};
+    activeFlights.forEach(f => {
+      const key = f.city;
+      const existing = routeMap[key];
+      if (!existing || f.price < existing.price) {
+        routeMap[key] = {
+          from: departureCity,
+          to: f.city,
+          price: f.price
+        };
+      }
+    });
+
+    const routes = Object.values(routeMap);
 
     setActiveRoutes(routes);
     setLoading(false);
@@ -358,11 +370,32 @@ const FlightPriceTable = () => {
 
 const [mapReady, setMapReady] = useState(false);
 const [mapError, setMapError] = useState(null);
+const [mapCenter, setMapCenter] = useState([114.085947, 22.547]);
 
   // 获取当前出发地的城市名
   const getCurrentDepartureCityName = () => {
     return departureCities.find(c => c.iata_code === selectedDeparture)?.city_name || selectedDeparture;
   };
+
+  useEffect(() => {
+    if (!selectedDeparture) return;
+
+    const departure = departureCities.find(c => c.iata_code === selectedDeparture);
+    const departureCityName = departure?.city_name;
+
+    if (departureCityName && cityCoordinates[departureCityName]) {
+      setMapCenter(cityCoordinates[departureCityName]);
+    } else if (departureCityName) {
+      getCityCoordinate(departureCityName).then((coord) => {
+        if (coord) {
+          setMapCenter(coord);
+        }
+      });
+    } else {
+      // fallback 到默认中心（深圳）
+      setMapCenter([114.085947, 22.547]);
+    }
+  }, [selectedDeparture, departureCities, cityCoordinates, getCityCoordinate]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -711,15 +744,21 @@ const [mapError, setMapError] = useState(null);
                   </Box>
                 )}
 
-                {REACT_APP_AMAP_KEY && !mapError && (
-                  <Map 
-                    amapkey={REACT_APP_AMAP_KEY}
-                    zoom={5}
-                    center={[114.085947, 22.547]}
-                    mapStyle="amap://styles/whitesmoke"
-                    onComplete={() => setMapReady(true)}
-                    onError={(error) => setMapError(error.message)}
-                  >
+          {REACT_APP_AMAP_KEY && !mapError && (
+            <Map 
+              amapkey={REACT_APP_AMAP_KEY}
+              zoom={5}
+              center={mapCenter}
+              mapStyle="amap://styles/darkblue"
+              onComplete={() => setMapReady(true)}
+              onError={(error) => setMapError(error.message)}
+              onMoveEnd={(e) => {
+                const center = e.target && e.target.getCenter && e.target.getCenter();
+                if (center) {
+                  setMapCenter([center.lng, center.lat]);
+                }
+              }}
+            >
                     {mapReady && Object.entries(cityCoordinates).map(([city, coordinates]) => {
                       // const departureCity = getCurrentDepartureCityName();
                       
@@ -762,12 +801,16 @@ const [mapError, setMapError] = useState(null);
                             transition: 'all 0.2s ease'
                           }} 
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'scale(1.2)';
+                            e.currentTarget.style.transform = 'scale(1.5)';
                             e.currentTarget.style.zIndex = 100;
+                            // 高亮对应的航线
+                            const routeIndex = activeRoutes.findIndex(r => r.to === city);
+                            if (routeIndex !== -1) setHoveredRouteIndex(routeIndex);
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.transform = 'scale(1)';
                             e.currentTarget.style.zIndex = 1;
+                            setHoveredRouteIndex(null);
                           }}
                           title={`${city} - 点击查看详情`}
                           />
@@ -806,22 +849,28 @@ const [mapError, setMapError] = useState(null);
                         points.push([x, y]);
                       }
                       
+                      const isHovered = hoveredRouteIndex === index;
+                      const isOtherHovered = hoveredRouteIndex !== null && !isHovered;
+                      
                       return (
                         <Polyline
                           key={index}
                           path={points}
-                          strokeColor={accentColor}
-                          strokeWeight={3}
+                          strokeColor={isHovered ? '#ff5722' : accentColor}
+                          strokeWeight={isHovered ? 6 : 3}
                           strokeStyle="solid"
                           showDir={true}
                           geodesic={false}
                           lineJoin="round"
                           lineCap="round"
-                          strokeOpacity={0.4}
+                          strokeOpacity={isHovered ? 1 : (isOtherHovered ? 0.1 : 0.4)}
                           borderWeight={0}
                           isOutline={false}
+                          zIndex={isHovered ? 100 : 1}
                           extData={route}
                           events={{
+                            mouseover: () => setHoveredRouteIndex(index),
+                            mouseout: () => setHoveredRouteIndex(null),
                             click: (e) => {
                               const routeData = e.target.getExtData();
                               alert(`${routeData.from} -> ${routeData.to}\n价格：￥${routeData.price}`);
