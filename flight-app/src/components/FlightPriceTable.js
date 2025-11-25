@@ -41,7 +41,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import MapIcon from '@mui/icons-material/Map';
 import TimelineIcon from '@mui/icons-material/Timeline';
-import SearchIcon from '@mui/icons-material/Search';
+// import SearchIcon from '@mui/icons-material/Search';
 
 // 在组件顶部添加安全配置
 window._AMapSecurityConfig = {
