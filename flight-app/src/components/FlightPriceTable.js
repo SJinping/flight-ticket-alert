@@ -471,7 +471,7 @@ const [mapCenter, setMapCenter] = useState([114.085947, 22.547]);
     }
   };
 
-  const destinationRoutes = [...new Map(
+  const destinationRoutes = [...new window.Map(
     flights.map(flight => [flight.iataCode, { code: flight.iataCode, city: flight.city }])
   ).values()].sort((a, b) => a.city.localeCompare(b.city, 'zh-CN'));
 
