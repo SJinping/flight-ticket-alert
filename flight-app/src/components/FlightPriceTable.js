@@ -665,6 +665,7 @@ const [mapCenter, setMapCenter] = useState([114.085947, 22.547]);
                               label={{ value: '价格 (￥)', angle: -90, position: 'insideLeft', fill: '#666' }}
                             />
                             <Tooltip
+                              wrapperStyle={{ pointerEvents: 'auto', zIndex: 10 }}
                               content={({ active, payload }) => {
                                 if (active && payload && payload.length) {
                                   const data = payload[0].payload;
@@ -691,7 +692,10 @@ const [mapCenter, setMapCenter] = useState([114.085947, 22.547]);
                                           color="secondary"
                                           fullWidth 
                                           sx={{ mt: 1.5 }}
-                                          onClick={() => window.open(url, '_blank')}
+                                          component="a"
+                                          href={url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
                                         >
                                           点击订票
                                         </Button>
