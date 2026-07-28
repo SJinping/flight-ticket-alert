@@ -50,6 +50,21 @@ window._AMapSecurityConfig = {
 
 // API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api';
+const SITE_URL = 'https://www.weekfly.fun';
+
+const getRouteRequest = () => {
+  const match = window.location.pathname.match(/^\/flights\/([a-z]{3})-([a-z]{3})\/?$/i);
+  if (!match) return null;
+  return {
+    from: match[1].toUpperCase(),
+    to: match[2].toUpperCase()
+  };
+};
+
+const setMetaContent = (selector, content) => {
+  const element = document.querySelector(selector);
+  if (element) element.setAttribute('content', content);
+};
 
 // Custom Theme
 const theme = createTheme({
@@ -95,13 +110,14 @@ const theme = createTheme({
 });
 
 const FlightPriceTable = () => {
+  const [routeRequest, setRouteRequest] = useState(() => getRouteRequest());
   const [selectedCityFlights, setSelectedCityFlights] = useState([]);
   const [cityDialogOpen, setCityDialogOpen] = useState(false);
   const [selectedCityName, setSelectedCityName] = useState('');
   const [flights, setFlights] = useState([]);
   const [filteredFlights, setFilteredFlights] = useState([]);
   const [selectedCity, setSelectedCity] = useState('');
-  const [selectedDeparture, setSelectedDeparture] = useState('');
+  const [selectedDeparture, setSelectedDeparture] = useState(() => getRouteRequest()?.from || '');
   const [departureCities, setDepartureCities] = useState([]);
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [cities, setCities] = useState([]);
@@ -114,6 +130,28 @@ const FlightPriceTable = () => {
   const [hoveredRouteIndex, setHoveredRouteIndex] = useState(null);
   const REACT_APP_AMAP_KEY = process.env.REACT_APP_AMAP_KEY
   const accentColor = theme.palette.secondary.main;
+
+  const updateBrowserUrl = useCallback((fromCode, toCode = '') => {
+    const nextPath = fromCode && toCode
+      ? `/flights/${fromCode.toLowerCase()}-${toCode.toLowerCase()}/`
+      : '/';
+    window.history.pushState({}, '', nextPath);
+    setRouteRequest(toCode ? { from: fromCode, to: toCode } : null);
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const nextRoute = getRouteRequest();
+      setRouteRequest(nextRoute);
+      if (nextRoute) {
+        setSelectedDeparture(nextRoute.from);
+      } else {
+        setSelectedCity('');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // 添加获取城市坐标的函数
   const getCityCoordinate = useCallback(async (cityName) => {
@@ -197,12 +235,11 @@ const FlightPriceTable = () => {
         setDepartureCities(data);
         // 默认选择深圳，如果找不到深圳则选择第一个出发地
         if (data.length > 0) {
-          const shenzhenCity = data.find(city => city.iata_code === 'SZX');
-          if (shenzhenCity) {
-            setSelectedDeparture('SZX');
-          } else {
-            setSelectedDeparture(data[0].iata_code);
-          }
+          setSelectedDeparture(currentDeparture => {
+            if (currentDeparture) return currentDeparture;
+            const shenzhenCity = data.find(city => city.iata_code === 'SZX');
+            return shenzhenCity ? 'SZX' : data[0].iata_code;
+          });
         }
       })
       .catch(error => {
@@ -264,7 +301,44 @@ const FlightPriceTable = () => {
         console.error('Error fetching flight data:', error);
         setLoading(false);
       });
-  }, [selectedDeparture]); // 依赖于selectedDeparture
+  }, [selectedDeparture]); // 依赖于出发地
+
+  useEffect(() => {
+    if (!routeRequest?.to || flights.length === 0) return;
+    const requestedFlight = flights.find(
+      flight => flight.iataCode.toUpperCase() === routeRequest.to
+    );
+    setSelectedCity(requestedFlight?.city || '');
+  }, [routeRequest, flights]);
+
+  useEffect(() => {
+    const requestedFlight = routeRequest?.to
+      ? flights.find(flight => flight.iataCode.toUpperCase() === routeRequest.to)
+      : null;
+    const destinationName = selectedCity || requestedFlight?.city;
+    const isRoutePage = Boolean(selectedDeparture && routeRequest?.to && destinationName);
+    const departureName =
+      departureCities.find(city => city.iata_code === selectedDeparture)?.city_name ||
+      selectedDeparture ||
+      '深圳';
+    const title = isRoutePage
+      ? `${departureName}到${destinationName}周末机票价格走势｜WeekFly`
+      : 'WeekFly 周末飞｜深圳出发的周末低价机票';
+    const description = isRoutePage
+      ? `查询${departureName}到${destinationName}的周末往返机票、低价日期和历史价格走势，快速比较并前往订票。`
+      : 'WeekFly 周末飞：快速查看从深圳出发的周末往返机票、低价目的地和历史价格走势，轻量查询后可直接前往订票。';
+    const canonical = isRoutePage
+      ? `${SITE_URL}/flights/${selectedDeparture.toLowerCase()}-${routeRequest.to.toLowerCase()}/`
+      : `${SITE_URL}/`;
+
+    document.title = title;
+    setMetaContent('meta[name="description"]', description);
+    setMetaContent('meta[property="og:title"]', title);
+    setMetaContent('meta[property="og:description"]', description);
+    setMetaContent('meta[property="og:url"]', canonical);
+    const canonicalElement = document.querySelector('link[rel="canonical"]');
+    if (canonicalElement) canonicalElement.setAttribute('href', canonical);
+  }, [selectedCity, selectedDeparture, routeRequest, flights, departureCities]);
 
   // 处理筛选
   useEffect(() => {
@@ -377,6 +451,30 @@ const [mapCenter, setMapCenter] = useState([114.085947, 22.547]);
     return departureCities.find(c => c.iata_code === selectedDeparture)?.city_name || selectedDeparture;
   };
 
+  const handleDepartureChange = (event) => {
+    const nextDeparture = event.target.value;
+    setSelectedDeparture(nextDeparture);
+    setSelectedCity('');
+    updateBrowserUrl('', '');
+  };
+
+  const handleDestinationChange = (event) => {
+    const nextCity = event.target.value;
+    setSelectedCity(nextCity);
+    if (!nextCity) {
+      updateBrowserUrl('', '');
+      return;
+    }
+    const destination = flights.find(flight => flight.city === nextCity);
+    if (destination) {
+      updateBrowserUrl(selectedDeparture, destination.iataCode);
+    }
+  };
+
+  const destinationRoutes = [...new Map(
+    flights.map(flight => [flight.iataCode, { code: flight.iataCode, city: flight.city }])
+  ).values()].sort((a, b) => a.city.localeCompare(b.city, 'zh-CN'));
+
   useEffect(() => {
     if (!selectedDeparture) return;
 
@@ -442,7 +540,7 @@ const [mapCenter, setMapCenter] = useState([114.085947, 22.547]);
               <FormControl variant="outlined" size="small" fullWidth>
                 <Select
                   value={selectedDeparture}
-                  onChange={(e) => setSelectedDeparture(e.target.value)}
+                  onChange={handleDepartureChange}
                   displayEmpty
                   startAdornment={<Typography variant="caption" sx={{ mr: 1, color: 'text.secondary' }}>出发:</Typography>}
                 >
@@ -460,7 +558,7 @@ const [mapCenter, setMapCenter] = useState([114.085947, 22.547]);
               <FormControl variant="outlined" size="small" fullWidth>
                 <Select
                   value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
+                  onChange={handleDestinationChange}
                   displayEmpty
                   startAdornment={<Typography variant="caption" sx={{ mr: 1, color: 'text.secondary' }}>到达:</Typography>}
                 >
@@ -888,6 +986,30 @@ const [mapCenter, setMapCenter] = useState([114.085947, 22.547]);
               </Box>
             )}
           </Paper>
+
+          {selectedDeparture === 'SZX' && destinationRoutes.length > 0 && (
+            <Box component="section" sx={{ mt: 4 }}>
+              <Typography variant="h5" component="h2" fontWeight="700" gutterBottom>
+                深圳出发的周末航线
+              </Typography>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
+                查看各目的地的独立价格走势页面
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {destinationRoutes.map(route => (
+                  <Button
+                    key={route.code}
+                    component="a"
+                    href={`/flights/szx-${route.code.toLowerCase()}/`}
+                    variant="outlined"
+                    size="small"
+                  >
+                    深圳到{route.city}
+                  </Button>
+                ))}
+              </Box>
+            </Box>
+          )}
         </Container>
 
         {/* 城市航班对话框 */}

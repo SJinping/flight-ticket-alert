@@ -1,14 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#1976d2" />
     <meta
       name="description"
-      content="Web site created using create-react-app"
+      content="WeekFly 周末飞：快速查看从深圳出发的周末往返机票、低价目的地和历史价格走势，轻量查询后可直接前往订票。"
     />
+    <meta name="keywords" content="深圳周末机票,深圳特价机票,周末去哪玩,机票价格走势,周末往返机票" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="WeekFly 周末飞" />
+    <meta property="og:title" content="WeekFly 周末飞｜深圳出发的周末低价机票" />
+    <meta property="og:description" content="快速查看从深圳出发的周末往返机票、低价目的地和历史价格走势。" />
+    <meta property="og:url" content="https://www.weekfly.fun/" />
+    <link rel="canonical" href="https://www.weekfly.fun/" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
       manifest.json provides metadata used when your web app is installed on a
@@ -24,7 +32,18 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>React App</title>
+    <title>WeekFly 周末飞｜深圳出发的周末低价机票</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "WeekFly 周末飞",
+        "url": "https://www.weekfly.fun/",
+        "applicationCategory": "TravelApplication",
+        "operatingSystem": "Web",
+        "description": "查询从深圳出发的周末往返机票、低价目的地和历史价格走势。"
+      }
+    </script>
     <script>
       window._AMapSecurityConfig = {
         securityJsCode: '%REACT_APP_AMAP_SECURITY_CODE%'
@@ -34,7 +53,21 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="root">
+      <main class="seo-fallback" style="max-width: 960px; margin: 48px auto; padding: 0 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1f2937;">
+        <h1>WeekFly 周末飞</h1>
+        <p>快速查看从深圳出发的周末往返机票、低价目的地和历史价格走势。页面加载后可以按目的地、预算和日期筛选，并直接前往订票。</p>
+        <h2>深圳出发的周末低价航线</h2>
+        <ul>
+          <li><a href="/flights/szx-ckg/">深圳到重庆周末机票</a></li>
+          <li><a href="/flights/szx-ctu/">深圳到成都周末机票</a></li>
+          <li><a href="/flights/szx-hgh/">深圳到杭州周末机票</a></li>
+          <li><a href="/flights/szx-wuh/">深圳到武汉周末机票</a></li>
+          <li><a href="/flights/szx-kwe/">深圳到贵阳周末机票</a></li>
+        </ul>
+        <p>正在加载最新机票数据……</p>
+      </main>
+    </div>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
